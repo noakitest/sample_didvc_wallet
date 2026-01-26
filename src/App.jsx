@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import WalletSelection from './components/WalletSelection';
+import WalletHome from './components/WalletHome';
+import { initializeDID } from './utils/did';
 
 // モックVCデータ
 const MOCK_VCS = [
@@ -12,7 +14,7 @@ const MOCK_VCS = [
     holderName: '山田 太郎',
     birthDate: '1990-05-15',
     address: '東京都渋谷区神宮前1-2-3',
-    did: 'did:example:123456789abcdefghi'
+    did: ''
   },
   {
     id: 'vc-002',
@@ -23,33 +25,44 @@ const MOCK_VCS = [
     holderName: '山田 太郎',
     birthDate: '1990-05-15',
     address: '東京都新宿区西新宿2-8-1',
-    did: 'did:example:123456789abcdefghi'
+    did: ''
   }
 ];
 
 function App() {
+  const [did, setDid] = useState('');
+  const [vcs, setVcs] = useState([]);
   const [callbackUrl, setCallbackUrl] = useState('');
   const [requestId, setRequestId] = useState('');
-  const [error, setError] = useState('');
+  const [isVCProviderMode, setIsVCProviderMode] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // DIDを初期化
+    const walletDid = initializeDID();
+    setDid(walletDid);
+
+    // VCデータにDIDを設定
+    const vcsWithDid = MOCK_VCS.map(vc => ({ ...vc, did: walletDid }));
+    setVcs(vcsWithDid);
+
     // URLパラメータを取得
     const params = new URLSearchParams(window.location.search);
     const callback = params.get('callback');
     const reqId = params.get('requestId');
 
-    if (!callback) {
-      setError('コールバックURLが指定されていません');
-      return;
+    if (callback) {
+      // VC提供モード
+      setIsVCProviderMode(true);
+      setCallbackUrl(callback);
+      setRequestId(reqId || '');
     }
 
-    setCallbackUrl(callback);
-    setRequestId(reqId || '');
+    setLoading(false);
   }, []);
 
   const handleVCSubmit = (selectedVC) => {
     if (!selectedVC) {
-      setError('VCが選択されていません');
       return;
     }
 
@@ -77,20 +90,7 @@ function App() {
     window.location.href = redirectUrl.toString();
   };
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
-          <div className="text-red-600 text-center">
-            <h2 className="text-xl font-semibold mb-2">エラー</h2>
-            <p>{error}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!callbackUrl) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-gray-500">読み込み中...</div>
@@ -100,11 +100,15 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <WalletSelection
-        vcs={MOCK_VCS}
-        onSubmit={handleVCSubmit}
-        onCancel={handleCancel}
-      />
+      {isVCProviderMode ? (
+        <WalletSelection
+          vcs={vcs}
+          onSubmit={handleVCSubmit}
+          onCancel={handleCancel}
+        />
+      ) : (
+        <WalletHome did={did} vcs={vcs} />
+      )}
     </div>
   );
 }
