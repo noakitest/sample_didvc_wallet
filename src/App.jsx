@@ -32,6 +32,7 @@ const MOCK_VCS = [
 function App() {
   const [did, setDid] = useState('');
   const [vcs, setVcs] = useState([]);
+  const [delegationVCs, setDelegationVCs] = useState([]);
   const [callbackUrl, setCallbackUrl] = useState('');
   const [requestId, setRequestId] = useState('');
   const [isVCProviderMode, setIsVCProviderMode] = useState(false);
@@ -45,6 +46,12 @@ function App() {
     // VCデータにDIDを設定
     const vcsWithDid = MOCK_VCS.map(vc => ({ ...vc, did: walletDid }));
     setVcs(vcsWithDid);
+
+    // 保存済みの委任状VCを読み込む
+    const savedDelegationVCs = localStorage.getItem('delegation_vcs');
+    if (savedDelegationVCs) {
+      setDelegationVCs(JSON.parse(savedDelegationVCs));
+    }
 
     // URLパラメータを取得
     const params = new URLSearchParams(window.location.search);
@@ -60,6 +67,13 @@ function App() {
 
     setLoading(false);
   }, []);
+
+  // 委任状VCを追加
+  const handleAddDelegationVC = (delegationVC) => {
+    const newDelegationVCs = [...delegationVCs, delegationVC];
+    setDelegationVCs(newDelegationVCs);
+    localStorage.setItem('delegation_vcs', JSON.stringify(newDelegationVCs));
+  };
 
   const handleVCSubmit = (selectedVC) => {
     if (!selectedVC) {
@@ -103,11 +117,18 @@ function App() {
       {isVCProviderMode ? (
         <WalletSelection
           vcs={vcs}
+          delegationVCs={delegationVCs}
+          requestId={requestId}
           onSubmit={handleVCSubmit}
           onCancel={handleCancel}
         />
       ) : (
-        <WalletHome did={did} vcs={vcs} />
+        <WalletHome
+          did={did}
+          vcs={vcs}
+          delegationVCs={delegationVCs}
+          onAddDelegationVC={handleAddDelegationVC}
+        />
       )}
     </div>
   );
