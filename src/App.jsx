@@ -1,33 +1,9 @@
 import { useState, useEffect } from 'react';
 import WalletSelection from './components/WalletSelection';
 import WalletHome from './components/WalletHome';
-import { initializeDID } from './utils/did';
-
-// モックVCデータ
-const MOCK_VCS = [
-  {
-    id: 'vc-001',
-    type: '運転免許証',
-    issuer: '東京都公安委員会',
-    issuedDate: '2020-04-01',
-    expiryDate: '2027-05-15',
-    holderName: '山田 太郎',
-    birthDate: '1990-05-15',
-    address: '東京都渋谷区神宮前1-2-3',
-    did: ''
-  },
-  {
-    id: 'vc-002',
-    type: 'マイナンバーカード',
-    issuer: 'デジタル庁',
-    issuedDate: '2021-06-01',
-    expiryDate: '2031-06-01',
-    holderName: '山田 太郎',
-    birthDate: '1990-05-15',
-    address: '東京都新宿区西新宿2-8-1',
-    did: ''
-  }
-];
+import WalletActivation from './components/WalletActivation';
+import IdentityVCRegistration from './components/IdentityVCRegistration';
+import { getDIDFromStorage } from './utils/did';
 
 function App() {
   const [did, setDid] = useState('');
@@ -38,17 +14,33 @@ function App() {
   const [isVCProviderMode, setIsVCProviderMode] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // ウォレットの状態: 'activation' | 'vc-registration' | 'ready'
+  const [walletState, setWalletState] = useState('activation');
+
   useEffect(() => {
-    // DIDを初期化
-    const walletDid = initializeDID();
-    setDid(walletDid);
+    // 既存のDIDをチェック
+    const existingDID = getDIDFromStorage();
 
-    // VCデータにDIDを設定
-    const vcsWithDid = MOCK_VCS.map(vc => ({ ...vc, did: walletDid }));
-    setVcs(vcsWithDid);
-
-    // 保存済みの委任状VCを読み込む
+    // 保存済みのVCを読み込む
+    const savedVCs = localStorage.getItem('wallet_vcs');
     const savedDelegationVCs = localStorage.getItem('delegation_vcs');
+
+    if (existingDID) {
+      // アクティベート済み
+      setDid(existingDID);
+
+      if (savedVCs) {
+        setVcs(JSON.parse(savedVCs));
+        setWalletState('ready');
+      } else {
+        // DIDはあるがVCが未登録 → VC登録ステップへ
+        setWalletState('vc-registration');
+      }
+    } else {
+      // 未アクティベート
+      setWalletState('activation');
+    }
+
     if (savedDelegationVCs) {
       setDelegationVCs(JSON.parse(savedDelegationVCs));
     }
@@ -59,7 +51,7 @@ function App() {
     const reqId = params.get('requestId');
 
     if (callback) {
-      // VC提供モード
+      // VC提供モード（アクティベート済みの場合のみ機能）
       setIsVCProviderMode(true);
       setCallbackUrl(callback);
       setRequestId(reqId || '');
@@ -67,6 +59,29 @@ function App() {
 
     setLoading(false);
   }, []);
+
+  // アクティベーション完了（DID生成済み）
+  const handleActivated = (newDid) => {
+    setDid(newDid);
+    setWalletState('vc-registration');
+  };
+
+  // 身分証VC登録完了
+  const handleVCRegistrationComplete = (allVCs) => {
+    setVcs(allVCs);
+    localStorage.setItem('wallet_vcs', JSON.stringify(allVCs));
+    setWalletState('ready');
+  };
+
+  // VC登録をスキップ or 戻る
+  const handleVCRegistrationSkip = () => {
+    setWalletState('ready');
+  };
+
+  // ホームから身分証追加画面へ
+  const handleAddIdentityVC = () => {
+    setWalletState('vc-registration');
+  };
 
   // 委任状VCを追加
   const handleAddDelegationVC = (delegationVC) => {
@@ -112,9 +127,10 @@ function App() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      {isVCProviderMode ? (
+  // VC提供モード（アクティベート済みの場合のみ）
+  if (isVCProviderMode && walletState === 'ready') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <WalletSelection
           vcs={vcs}
           delegationVCs={delegationVCs}
@@ -122,12 +138,30 @@ function App() {
           onSubmit={handleVCSubmit}
           onCancel={handleCancel}
         />
-      ) : (
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      {walletState === 'activation' && (
+        <WalletActivation onActivated={handleActivated} />
+      )}
+      {walletState === 'vc-registration' && (
+        <IdentityVCRegistration
+          did={did}
+          existingVCs={vcs}
+          onComplete={handleVCRegistrationComplete}
+          onSkip={handleVCRegistrationSkip}
+        />
+      )}
+      {walletState === 'ready' && (
         <WalletHome
           did={did}
           vcs={vcs}
           delegationVCs={delegationVCs}
           onAddDelegationVC={handleAddDelegationVC}
+          onAddIdentityVC={handleAddIdentityVC}
         />
       )}
     </div>

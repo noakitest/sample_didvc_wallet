@@ -7,7 +7,7 @@ import { CopyIcon, CheckIcon, WalletIcon, CreditCardIcon, QrCodeIcon, CameraIcon
  * Walletのホーム画面コンポーネント
  * DIDと保有VCを表示、QRスキャンで委任状VCを受け取る
  */
-function WalletHome({ did, vcs, delegationVCs, onAddDelegationVC }) {
+function WalletHome({ did, vcs, delegationVCs, onAddDelegationVC, onAddIdentityVC }) {
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
@@ -248,9 +248,19 @@ function WalletHome({ did, vcs, delegationVCs, onAddDelegationVC }) {
 
         {/* 保有証明書（身分証） */}
         <div className="mb-6">
-          <h2 className="text-sm font-semibold text-gray-500 mb-3">
-            保有証明書 ({vcs.length}件)
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-500">
+              保有証明書 ({vcs.length}件)
+            </h2>
+            {onAddIdentityVC && (
+              <button
+                onClick={onAddIdentityVC}
+                className="text-xs px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors font-medium"
+              >
+                + 身分証を追加
+              </button>
+            )}
+          </div>
           <div className="space-y-3">
             {vcs.length === 0 ? (
               <div className="text-center py-8 text-gray-400">
