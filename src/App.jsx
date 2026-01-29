@@ -26,16 +26,13 @@ function App() {
     const savedDelegationVCs = localStorage.getItem('delegation_vcs');
 
     if (existingDID) {
-      // アクティベート済み
+      // アクティベート済み → 常にホームへ
       setDid(existingDID);
 
       if (savedVCs) {
         setVcs(JSON.parse(savedVCs));
-        setWalletState('ready');
-      } else {
-        // DIDはあるがVCが未登録 → VC登録ステップへ
-        setWalletState('vc-registration');
       }
+      setWalletState('ready');
     } else {
       // 未アクティベート
       setWalletState('activation');
