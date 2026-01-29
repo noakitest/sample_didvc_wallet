@@ -3,6 +3,7 @@ import WalletSelection from './components/WalletSelection';
 import WalletHome from './components/WalletHome';
 import WalletActivation from './components/WalletActivation';
 import IdentityVCRegistration from './components/IdentityVCRegistration';
+import DIDAuthConfirm from './components/DIDAuthConfirm';
 import { getDIDFromStorage } from './utils/did';
 
 function App() {
@@ -126,6 +127,19 @@ function App() {
 
   // VC提供モード（アクティベート済みの場合のみ）
   if (isVCProviderMode && walletState === 'ready') {
+    // DID認証モード
+    if (requestId === 'did-auth') {
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <DIDAuthConfirm
+            did={did}
+            onSubmit={handleVCSubmit}
+            onCancel={handleCancel}
+          />
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <WalletSelection
