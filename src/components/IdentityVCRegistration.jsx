@@ -17,6 +17,15 @@ const ID_TYPES = [
   },
 ];
 
+// カスタム入力フォームの初期値
+const CUSTOM_INITIAL = {
+  label: '',
+  issuer: '',
+  holderName: '',
+  birthDate: '',
+  address: '',
+};
+
 /**
  * 身分証VC登録コンポーネント（アクティベート後のモック登録フロー）
  * @param {string} did - ウォレットのDID
@@ -25,8 +34,9 @@ const ID_TYPES = [
  * @param {function|null} onSkip - スキップ/戻るボタン押下時コールバック
  */
 export default function IdentityVCRegistration({ did, existingVCs = [], onComplete, onSkip }) {
-  const [step, setStep] = useState('select'); // select | confirm | verifying | done
+  const [step, setStep] = useState('select'); // select | custom-input | confirm | verifying | done
   const [selectedType, setSelectedType] = useState(null);
+  const [customForm, setCustomForm] = useState(CUSTOM_INITIAL);
   const [newVCs, setNewVCs] = useState([]);
 
   // 既存 + 今回登録分を合わせた全VC
@@ -38,6 +48,30 @@ export default function IdentityVCRegistration({ did, existingVCs = [], onComple
     setStep('confirm');
   };
 
+  // カスタム入力画面へ遷移
+  const handleCustom = () => {
+    setCustomForm(CUSTOM_INITIAL);
+    setStep('custom-input');
+  };
+
+  // カスタム入力の確定
+  const handleCustomConfirm = () => {
+    setSelectedType({
+      key: 'custom',
+      label: customForm.label,
+      issuer: customForm.issuer,
+      color: 'purple',
+      _custom: true,
+      _holderName: customForm.holderName,
+      _birthDate: customForm.birthDate,
+      _address: customForm.address,
+    });
+    setStep('confirm');
+  };
+
+  const isCustomFormValid =
+    customForm.label.trim() && customForm.issuer.trim() && customForm.holderName.trim();
+
   // 登録実行
   const handleRegister = () => {
     setStep('verifying');
@@ -48,17 +82,21 @@ export default function IdentityVCRegistration({ did, existingVCs = [], onComple
       const expiryYear = new Date().getFullYear() + 5;
       const expiryDate = `${expiryYear}-${today.slice(5)}`;
 
+      const isCustom = selectedType._custom;
+
       const newVC = {
         id: `vc-${Date.now()}`,
         type: selectedType.label,
         issuer: selectedType.issuer,
         issuedDate: today,
         expiryDate: expiryDate,
-        holderName: '山田 太郎',
-        birthDate: '1990-05-15',
-        address: selectedType.key === 'drivers-license'
-          ? '東京都渋谷区神宮前1-2-3'
-          : '東京都新宿区西新宿2-8-1',
+        holderName: isCustom ? selectedType._holderName : '山田 太郎',
+        birthDate: isCustom ? (selectedType._birthDate || '') : '1990-05-15',
+        address: isCustom
+          ? (selectedType._address || '')
+          : selectedType.key === 'drivers-license'
+            ? '東京都渋谷区神宮前1-2-3'
+            : '東京都新宿区西新宿2-8-1',
         did: did,
       };
 
@@ -108,40 +146,48 @@ export default function IdentityVCRegistration({ did, existingVCs = [], onComple
               </div>
             )}
 
-            {availableTypes.length > 0 ? (
-              <>
-                <p className="text-sm text-gray-600 mb-4">
-                  登録する身分証を選択してください
-                </p>
-                <div className="space-y-3">
-                  {availableTypes.map((idType) => (
-                    <button
-                      key={idType.key}
-                      onClick={() => handleSelect(idType)}
-                      className="w-full text-left border-2 border-gray-200 rounded-lg p-4 hover:border-emerald-400 hover:bg-emerald-50 transition-all"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                          idType.color === 'green' ? 'bg-green-100' : 'bg-blue-100'
-                        }`}>
-                          <CreditCardIcon className={`w-6 h-6 ${
-                            idType.color === 'green' ? 'text-green-600' : 'text-blue-600'
-                          }`} />
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{idType.label}</p>
-                          <p className="text-sm text-gray-500">発行: {idType.issuer}</p>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
+            <p className="text-sm text-gray-600 mb-4">
+              登録する身分証を選択してください
+            </p>
+            <div className="space-y-3">
+              {availableTypes.map((idType) => (
+                <button
+                  key={idType.key}
+                  onClick={() => handleSelect(idType)}
+                  className="w-full text-left border-2 border-gray-200 rounded-lg p-4 hover:border-emerald-400 hover:bg-emerald-50 transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                      idType.color === 'green' ? 'bg-green-100' : 'bg-blue-100'
+                    }`}>
+                      <CreditCardIcon className={`w-6 h-6 ${
+                        idType.color === 'green' ? 'text-green-600' : 'text-blue-600'
+                      }`} />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{idType.label}</p>
+                      <p className="text-sm text-gray-500">発行: {idType.issuer}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+
+              {/* カスタム身分証 */}
+              <button
+                onClick={handleCustom}
+                className="w-full text-left border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-purple-400 hover:bg-purple-50 transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-purple-100">
+                    <span className="text-purple-600 text-xl font-bold">+</span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">カスタム身分証</p>
+                    <p className="text-sm text-gray-500">各項目を手動で入力して登録</p>
+                  </div>
                 </div>
-              </>
-            ) : (
-              <p className="text-sm text-gray-500 text-center py-2">
-                登録可能な身分証がすべて登録されています
-              </p>
-            )}
+              </button>
+            </div>
 
             <div className="mt-4 space-y-2">
               {newVCs.length > 0 && (
@@ -164,6 +210,93 @@ export default function IdentityVCRegistration({ did, existingVCs = [], onComple
           </div>
         )}
 
+        {/* Step: custom-input */}
+        {step === 'custom-input' && (
+          <div>
+            <p className="text-sm text-gray-600 mb-4">
+              身分証VCの各項目を入力してください
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">
+                  証明書タイプ <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={customForm.label}
+                  onChange={(e) => setCustomForm(prev => ({ ...prev, label: e.target.value }))}
+                  placeholder="例: 社員証、学生証、パスポート"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">
+                  発行機関 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={customForm.issuer}
+                  onChange={(e) => setCustomForm(prev => ({ ...prev, issuer: e.target.value }))}
+                  placeholder="例: 株式会社○○、○○大学"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">
+                  氏名 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={customForm.holderName}
+                  onChange={(e) => setCustomForm(prev => ({ ...prev, holderName: e.target.value }))}
+                  placeholder="例: 山田 太郎"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">生年月日</label>
+                <input
+                  type="date"
+                  value={customForm.birthDate}
+                  onChange={(e) => setCustomForm(prev => ({ ...prev, birthDate: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">住所</label>
+                <input
+                  type="text"
+                  value={customForm.address}
+                  onChange={(e) => setCustomForm(prev => ({ ...prev, address: e.target.value }))}
+                  placeholder="例: 東京都千代田区..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => { setCustomForm(CUSTOM_INITIAL); setStep('select'); }}
+                className="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                戻る
+              </button>
+              <button
+                onClick={handleCustomConfirm}
+                disabled={!isCustomFormValid}
+                className={`flex-1 px-4 py-3 font-medium rounded-lg transition-all ${
+                  isCustomFormValid
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                確認へ進む
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Step: confirm */}
         {step === 'confirm' && selectedType && (
           <div>
@@ -181,20 +314,30 @@ export default function IdentityVCRegistration({ did, existingVCs = [], onComple
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">氏名</p>
-                  <p className="font-medium text-gray-900">山田 太郎</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">生年月日</p>
-                  <p className="font-medium text-gray-900">1990年5月15日</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">住所</p>
                   <p className="font-medium text-gray-900">
-                    {selectedType.key === 'drivers-license'
-                      ? '東京都渋谷区神宮前1-2-3'
-                      : '東京都新宿区西新宿2-8-1'}
+                    {selectedType._custom ? selectedType._holderName : '山田 太郎'}
                   </p>
                 </div>
+                {(selectedType._custom ? selectedType._birthDate : true) && (
+                  <div>
+                    <p className="text-xs text-gray-500">生年月日</p>
+                    <p className="font-medium text-gray-900">
+                      {selectedType._custom ? selectedType._birthDate : '1990年5月15日'}
+                    </p>
+                  </div>
+                )}
+                {(selectedType._custom ? selectedType._address : true) && (
+                  <div>
+                    <p className="text-xs text-gray-500">住所</p>
+                    <p className="font-medium text-gray-900">
+                      {selectedType._custom
+                        ? selectedType._address
+                        : selectedType.key === 'drivers-license'
+                          ? '東京都渋谷区神宮前1-2-3'
+                          : '東京都新宿区西新宿2-8-1'}
+                    </p>
+                  </div>
+                )}
                 <div>
                   <p className="text-xs text-gray-500">紐付けDID</p>
                   <code className="text-xs text-gray-700 break-all">{did}</code>
@@ -204,7 +347,14 @@ export default function IdentityVCRegistration({ did, existingVCs = [], onComple
 
             <div className="flex gap-3">
               <button
-                onClick={() => { setSelectedType(null); setStep('select'); }}
+                onClick={() => {
+                  if (selectedType?._custom) {
+                    setStep('custom-input');
+                  } else {
+                    setSelectedType(null);
+                    setStep('select');
+                  }
+                }}
                 className="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
               >
                 戻る
