@@ -18,6 +18,16 @@ function App() {
   // ウォレットの状態: 'activation' | 'vc-registration' | 'ready'
   const [walletState, setWalletState] = useState('activation');
 
+  // ウォレットのオーナー名（デモで複数ウォレットを区別するため）
+  const [ownerName, setOwnerName] = useState(() => {
+    return localStorage.getItem('wallet_owner_name') || '';
+  });
+
+  const handleOwnerNameChange = (name) => {
+    setOwnerName(name);
+    localStorage.setItem('wallet_owner_name', name);
+  };
+
   useEffect(() => {
     // 既存のDIDをチェック
     const existingDID = getDIDFromStorage();
@@ -133,6 +143,7 @@ function App() {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
           <DIDAuthConfirm
             did={did}
+            ownerName={ownerName}
             onSubmit={handleVCSubmit}
             onCancel={handleCancel}
           />
@@ -146,6 +157,7 @@ function App() {
           vcs={vcs}
           delegationVCs={delegationVCs}
           requestId={requestId}
+          ownerName={ownerName}
           onSubmit={handleVCSubmit}
           onCancel={handleCancel}
         />
@@ -171,6 +183,8 @@ function App() {
           did={did}
           vcs={vcs}
           delegationVCs={delegationVCs}
+          ownerName={ownerName}
+          onOwnerNameChange={handleOwnerNameChange}
           onAddDelegationVC={handleAddDelegationVC}
           onAddIdentityVC={handleAddIdentityVC}
         />

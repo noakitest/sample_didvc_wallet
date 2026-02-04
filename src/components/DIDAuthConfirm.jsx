@@ -6,7 +6,7 @@ import { Wallet, ArrowLeft, Send } from './Icons';
  * DID認証確認画面
  * ウォレットのDIDを使って認証要求に応答する
  */
-export default function DIDAuthConfirm({ did, onSubmit, onCancel }) {
+export default function DIDAuthConfirm({ did, ownerName, onSubmit, onCancel }) {
   const [confirmed, setConfirmed] = useState(false);
 
   const handleConfirm = () => {
@@ -23,7 +23,9 @@ export default function DIDAuthConfirm({ did, onSubmit, onCancel }) {
       <div className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white p-6">
         <div className="flex items-center space-x-3 mb-2">
           <Wallet className="w-8 h-8" />
-          <h2 className="text-2xl font-bold">DID認証</h2>
+          <h2 className="text-2xl font-bold">
+            {ownerName ? `${ownerName} - DID認証` : 'DID認証'}
+          </h2>
         </div>
         <p className="text-cyan-100">
           あなたのDIDでログインを要求しています

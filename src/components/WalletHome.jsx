@@ -7,12 +7,14 @@ import { CopyIcon, CheckIcon, WalletIcon, CreditCardIcon, QrCodeIcon, CameraIcon
  * Walletのホーム画面コンポーネント
  * DIDと保有VCを表示、QRスキャンで委任状VCを受け取る
  */
-function WalletHome({ did, vcs, delegationVCs, onAddDelegationVC, onAddIdentityVC }) {
+function WalletHome({ did, vcs, delegationVCs, ownerName, onOwnerNameChange, onAddDelegationVC, onAddIdentityVC }) {
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [scanError, setScanError] = useState('');
   const [scanSuccess, setScanSuccess] = useState(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editingName, setEditingName] = useState(ownerName);
   const scannerRef = useRef(null);
   const html5QrCodeRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -161,9 +163,52 @@ function WalletHome({ did, vcs, delegationVCs, onAddDelegationVC, onAddIdentityV
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-t-lg">
         <div className="flex items-center gap-3 mb-2">
           <WalletIcon className="w-8 h-8" />
-          <h1 className="text-2xl font-bold">マイウォレット</h1>
+          <h1 className="text-2xl font-bold">
+            {ownerName ? `${ownerName}のウォレット` : 'マイウォレット'}
+          </h1>
         </div>
-        <p className="text-blue-100 text-sm">デジタルアイデンティティウォレット</p>
+        <div className="flex items-center justify-between">
+          <p className="text-blue-100 text-sm">デジタルアイデンティティウォレット</p>
+          {isEditingName ? (
+            <form
+              className="flex items-center gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                onOwnerNameChange(editingName.trim());
+                setIsEditingName(false);
+              }}
+            >
+              <input
+                type="text"
+                value={editingName}
+                onChange={(e) => setEditingName(e.target.value)}
+                className="px-2 py-1 rounded text-sm text-gray-900 w-28"
+                placeholder="名前を入力"
+                autoFocus
+              />
+              <button
+                type="submit"
+                className="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded"
+              >
+                保存
+              </button>
+              <button
+                type="button"
+                onClick={() => { setIsEditingName(false); setEditingName(ownerName); }}
+                className="text-xs bg-white/10 hover:bg-white/20 px-2 py-1 rounded"
+              >
+                取消
+              </button>
+            </form>
+          ) : (
+            <button
+              onClick={() => setIsEditingName(true)}
+              className="text-xs bg-white/10 hover:bg-white/20 px-2 py-1 rounded transition-colors"
+            >
+              表示名変更
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="p-6">

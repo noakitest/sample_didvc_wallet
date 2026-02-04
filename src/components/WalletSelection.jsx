@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Wallet, CreditCard, CheckCircle, ArrowLeft, Send } from './Icons';
 import { FileTextIcon } from './Icons';
 
-export default function WalletSelection({ vcs, delegationVCs = [], requestId, onSubmit, onCancel }) {
+export default function WalletSelection({ vcs, delegationVCs = [], requestId, ownerName, onSubmit, onCancel }) {
   const [selectedVC, setSelectedVC] = useState(null);
 
   // 代理ログインモードかどうか
@@ -32,7 +32,9 @@ export default function WalletSelection({ vcs, delegationVCs = [], requestId, on
       }`}>
         <div className="flex items-center space-x-3 mb-2">
           <Wallet className="w-8 h-8" />
-          <h2 className="text-2xl font-bold">デジタルウォレット</h2>
+          <h2 className="text-2xl font-bold">
+            {ownerName ? `${ownerName}のウォレット` : 'デジタルウォレット'}
+          </h2>
         </div>
         <p className={isDelegationLogin ? 'text-purple-100' : 'text-purple-100'}>
           {isDelegationLogin
